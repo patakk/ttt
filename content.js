@@ -30,7 +30,7 @@ document.addEventListener('contextmenu', function(event) {
 
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-    if (request.type === "sendTranslationBegin") {
+    if (request.type === "sendTranslationBegin" || request.type === "explainHanzi") {
         console.log('transmition begin');
 
         // removeBubbleFromDOM();
@@ -104,6 +104,26 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             const rect = range.getBoundingClientRect();
             applyInitialPos(bubble, rect);
         }
+        if(request.type === "explainHanzi") {
+            let selectedText = window.getSelection().toString();
+            selectedText = selectedText.trim();
+
+            if(activeBubbles.length > 0) {
+                let bubble = activeBubbles[activeBubbles.length - 1];
+                applyInitialStyles(bubble);
+                addBubbleInteractions(bubble);
+                checkMouseOver(bubble);
+            }
+            if(request.shouldDelete){
+                setTimeout(() => {
+                    let bubble = activeBubbles[activeBubbles.length - 1];
+                    removeBubbleFromDOM(bubble);
+                    activeBubbles = activeBubbles.filter(b => b !== bubble);
+                    bubble.removed = true; // Mark the object as removed
+                }, 2000);
+            }
+            
+        }
     }
     else if (request.type === "sendTranslatedChunk") {
         // fetch last bubble and add text to its content
@@ -122,61 +142,92 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             let bubble = activeBubbles[activeBubbles.length - 1];
             applyInitialStyles(bubble);
             addBubbleInteractions(bubble);
-            
             checkMouseOver(bubble);
         }
     }
 });
 
-// chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-//     if (request.type === "showTranslatedText") {
-//         const selection = window.getSelection();
-//         if (!selection.rangeCount) return;
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+    if (request.type === "drawHanzi") {
+        showHanzi();
+    }
+});
 
-//         const range = selection.getRangeAt(0);
-//         const rect = range.getBoundingClientRect();
 
-//         // removeBubbleFromDOM();
-//         if(!initializeStyle) {
-//             const style = document.createElement('style');
-//             document.head.appendChild(style);
-//             style.textContent = `
-//                 #translation-bubble, #translation-bubble * {
-//                     user-select: text; /* Allows text to be selected inside the bubble */
-//                     color: rgba(10,10,10,1.0); /* Ensure text color is consistent */
-//                     display: inline-block; /* Treat inline elements like block elements */
-//                     white-space: nowrap; /* Prevents the collapse of whitespace */
-//                     text-wrap: balance; /* Balance text wrapping */
-//                 }
-//                 #translation-bubble::selection, #translation-bubble *::selection {
-//                     background: #FFD700; /* Gold background for the bubble */
-//                     color: #000; /* Black text for the bubble */
-//                 }
-//             `;
-//             initializeStyle = true;
-//         }
+function explainHanzi(){
+    // removeBubbleFromDOM();
+    let style = null;
+    if(!initializeStyle) {
+        style = document.createElement('style');
+        style.textContent = `
+            .translation-bubble, .translation-bubble * {
+                user-select: text; /* Allows text to be selected inside the bubble */
+                color: rgba(10,10,10,1.0); /* Ensure text color is consistent */
+                display: inline-block; /* Treat inline elements like block elements */
+                white-space: nowrap; /* Prevents the collapse of whitespace */
+                text-wrap: balance; /* Balance text wrapping */
+            }
+            .translation-bubble::selection, .translation-bubble *::selection {
+                background: #FFD700; /* Gold background for the bubble */
+                color: #000; /* Black text for the bubble */
+            }
+        `;
+        document.head.appendChild(style);
+        initializeStyle = true;
+    }
 
-//         let bubblediv = document.createElement('div');
-//         bubblediv.setAttribute('id', 'translation-bubble');
-//         let lines = request.translatedText.split('\n').map(line => {
-//             line = line.trim();
-//             if (line.startsWith('*')) {
-//                 line = `<i>${line.slice(1).trim()}</i>`;
-//             }
-//             line = line.split('. ').join('.<br>');
-//             line = line.split('." ').join('."<br>');
-//             return line;
-//         });
-//         bubblediv.innerHTML = lines.join('<br>');
-//         document.body.appendChild(bubblediv);
+    let bubblediv = document.createElement('div');
+    bubblediv.setAttribute('id', 'translation-bubble');
+    bubblediv.className = 'translation-bubble';
+    // let lines = request.translatedText.split('\n').map(line => {
+    //     line = line.trim();
+    //     if (line.startsWith('*')) {
+    //         line = `<i>${line.slice(1).trim()}</i>`;
+    //     }
+    //     line = line.split('. ').join('.<br>');
+    //     line = line.split('." ').join('."<br>');
+    //     return line;
+    // });
 
-//         let bubble = new Bubble(bubblediv)
-//         activeBubbles.push(bubble);
+    // create a text container
+    let bubbletext = document.createElement('div');
+    bubbletext.className = 'translation-bubble-text';
+    bubbletext.innerHTML = request.translatedText;
 
-//         applyInitialStyles(bubble, rect);
-//         addBubbleInteractions(bubble);
-//     }
-// });
+    // bubblediv.innerHTML = request.translatedText;
+    bubblediv.appendChild(bubbletext);
+    document.body.appendChild(bubblediv);
+
+    let bubble = new Bubble(bubblediv)
+    bubble.bubbletext = bubbletext;
+    activeBubbles.push(bubble);
+    
+    bubblediv.style.position = 'absolute';
+    bubblediv.style.padding = '18px 24px';
+    bubblediv.style.backgroundColor = 'rgba(255,255,255, 0.75)';
+    bubblediv.style.border = 'none';
+    bubblediv.style.borderRadius = '10px';
+    bubblediv.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+    bubblediv.style.backdropFilter = 'blur(5px)';
+    bubblediv.style.zIndex = '666';
+    bubblediv.style.color = 'rgba(9,9,9,1.0)';
+    bubblediv.style.fontSize = '16px';
+    bubblediv.style.font = 'Roboto, sans-serif';
+
+    bubbletext.style.cssText = 'scrollbar-width: none; max-height: 600px; max-width: 500px; overflow-y: scroll; padding: 6px 0px;';
+    // bubbletext.style.overflowY = bubbletext.scrollHeight > bubbletext.clientHeight ? 'scroll' : 'hidden';
+
+
+    const selection = window.getSelection();
+    if (!selection.rangeCount)
+        {}
+    else{
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        applyInitialPos(bubble, rect);
+    }
+}
+
 
 let rmouseX = 0;
 let rmouseY = 0;
@@ -370,9 +421,24 @@ let clickStartedOnHanzi = false;
 
 document.addEventListener('mousedown', function(event) {
     clickStartedOnHanzi = isMouseOverHanzi;
+    if (!isMouseOverHanzi && !clickStartedOnHanzi) {
+        let hanzicontainers = document.getElementsByClassName('hanzi-container');
+        for (let i = 0; i < hanzicontainers.length; i++) {
+            hanzicontainers[i].style.transition = 'opacity 0.2s';
+            hanzicontainers[i].style.opacity = '0';
+            setTimeout(() => {
+                hanzicontainers[i].parentNode.removeChild(hanzicontainers[i]);
+                // remove event listerners
+                isQuizState = false;
+                isMouseOverHanzi = false;
+                quizComplete = false;
+            }, 200);
+        }
+    }
 });
 
-document.addEventListener('mouseup', function(event) {
+function showHanzi() {
+    console.log('showing hanzi');
     if (!isMouseOverHanzi && !clickStartedOnHanzi) {
         let hanzicontainers = document.getElementsByClassName('hanzi-container');
         for (let i = 0; i < hanzicontainers.length; i++) {
@@ -397,18 +463,14 @@ document.addEventListener('mouseup', function(event) {
     let selectedText = window.getSelection().toString();
     selectedText = selectedText.trim();
     
-    let x = event.clientX + window.scrollX;
-    let y = event.clientY + window.scrollY;
-    mouseX = x;
-    mouseY = y;
-    if (selectedText.length === 1 && /[\u4e00-\u9faf]/.test(selectedText) && !shouldSkipHanzi) {
+    if (selectedText.length === 1 && /[\u4e00-\u9faf]/.test(selectedText)) {
         const hanzicontainer = document.createElement('div');
         document.body.appendChild(hanzicontainer);
         isQuizState = false;
         isMouseOverHanzi = false;
         hanzicontainer.style.position = 'absolute';
-        hanzicontainer.style.left = mouseStartX + 'px';
-        hanzicontainer.style.top = mouseStartY + 'px';
+        hanzicontainer.style.left = rmouseX + 'px';
+        hanzicontainer.style.top = rmouseY + 'px';
         hanzicontainer.style.zIndex = '9999';
         hanzicontainer.style.padding = '28px 28px';
         hanzicontainer.style.backgroundColor = 'rgba(255, 255, 255, 0.75)';
@@ -473,7 +535,7 @@ document.addEventListener('mouseup', function(event) {
         }, 1000);
     }
     shouldSkipHanzi = false;
-});
+}
 
 
 let timeouts = [];

@@ -11,8 +11,37 @@ chrome.runtime.onInstalled.addListener(function() {
         title: "Translate Text",
         contexts: ["selection"]
     });
+    chrome.contextMenus.create({
+        id: "drawHanzi",
+        title: "Draw Hanzi",
+        contexts: ["selection"]
+    });
+    chrome.contextMenus.create({
+        id: "explainHanzi",
+        title: "Explain Hanzi",
+        contexts: ["selection"]
+    });
 });
 
+// let explanations = {};
+
+// function loadExplanations() {
+//     fetch(chrome.runtime.getURL("examples_by_word.json"))
+//         .then(response => response.json())
+//         .then(data => {
+//             explanations = data;
+//             console.log("Explanations loaded successfully.");
+//         })
+//         .catch(err => console.error("Failed to load explanations:", err));
+// }
+
+// chrome.runtime.onStartup.addListener(() => {
+//     loadExplanations();
+// });
+
+// chrome.runtime.onInstalled.addListener(() => {
+//     loadExplanations();
+// });
 
 chrome.commands.onCommand.addListener(function(command) {
     if (command === "speak_command") {
@@ -104,6 +133,29 @@ chrome.contextMenus.onClicked.addListener(function(info, tab) {
                 console.error('API Key or language not set.');
             }
         });
+    } else if (info.menuItemId === "drawHanzi") {
+        chrome.tabs.sendMessage(tab.id, {
+            type: "drawHanzi",
+        });
+    } else if (info.menuItemId === "explainHanzi") {
+        chrome.tabs.executeScript({
+            code: "window.getSelection().toString().trim();"
+        }, function(selection) {
+            var selectedText = selection[0];
+            console.log('selectedText:', selectedText);
+            let explanation = hanzidict[selectedText] || {examples: "No explanation found."};
+            let shouldDelete = false;
+            console.log('explanation:', explanation);
+            if (explanation['examples'] == "No explanation found.") {
+                shouldDelete = true;
+            }
+            chrome.tabs.sendMessage(tab.id, {
+                type: "explainHanzi",
+                translatedText: explanation['examples'],
+                shouldDelete: shouldDelete
+            });
+        });
+
     }
 });
 
