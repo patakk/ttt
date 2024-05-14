@@ -23,26 +23,6 @@ chrome.runtime.onInstalled.addListener(function() {
     });
 });
 
-// let explanations = {};
-
-// function loadExplanations() {
-//     fetch(chrome.runtime.getURL("examples_by_word.json"))
-//         .then(response => response.json())
-//         .then(data => {
-//             explanations = data;
-//             console.log("Explanations loaded successfully.");
-//         })
-//         .catch(err => console.error("Failed to load explanations:", err));
-// }
-
-// chrome.runtime.onStartup.addListener(() => {
-//     loadExplanations();
-// });
-
-// chrome.runtime.onInstalled.addListener(() => {
-//     loadExplanations();
-// });
-
 chrome.commands.onCommand.addListener(function(command) {
     if (command === "speak_command") {
         chrome.tabs.executeScript({

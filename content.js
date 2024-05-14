@@ -346,21 +346,14 @@ document.addEventListener('click', function outsideClickListener(event) {
 */
 
 document.addEventListener('keydown', function(event) {
-    // Check if the 'q' key was pressed
     if (event.key === 'q') {
-        // Retrieve the translation history from storage
         chrome.storage.local.get(['translationHistory'], function(result) {
             if (result.translationHistory) {
-                // Concatenate all input texts into a single string
                 const allInputs = result.translationHistory.map(translation => translation.inputText.trim()).join(" ");
-                // Split the string into words and count them
                 const allWords = allInputs.split(/\s+/).filter(word => word.length > 0);
-                // remove duplicates
                 const uniqueWords = [...new Set(allWords)];
-                // Count the number of unique words
                 const wordCount = allWords.length;
                 const uniqueWordCount = uniqueWords.length;
-                // Log the total number of words
                 console.log(`Total number of input words:        ${wordCount}`);
                 console.log(`Total number of unique input words: ${uniqueWordCount}`);
             } else {
@@ -406,6 +399,7 @@ document.addEventListener('keydown', function(event) {
                 onComplete: function() {
                     // hanziwriter.updateColor('strokeColor', 'rgb(233,244,255,0.6)')
                     quizComplete = true;
+                    isQuizState = false;
                     // setInterval(() => {
                         // hanziwriter.updateColor('strokeColor', '#000000')
                     // }, 600);

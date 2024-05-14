@@ -57,28 +57,31 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
+    chrome.storage.local.get([
+        'openaiApiKey', 
+        'sourceLanguage', 
+        'preferredLanguage', 
+        'speechSpeed', 
+        'speechVoice', 
+        'chosenModel', 
+        'speechModel'
+    ], function(data) {
+        const defaults = {
+            preferredLanguage: 'Chinese',
+            sourceLanguage: 'English',
+            speechSpeed: 50,
+            speechVoice: 'nova',
+            chosenModel: 'gpt-3.5-0125',
+            speechModel: 'tts-1'
+        };
 
-    chrome.storage.local.get(['openaiApiKey', 'sourceLanguage', 'preferredLanguage', 'speechSpeed', 'speechVoice', 'chosenModel', 'speechModel'], function(data) {
-        if (data.openaiApiKey) {
-            document.getElementById('apiKey').value = data.openaiApiKey;
-        }
-        if (data.preferredLanguage) {
-            document.getElementById('languageSelector').value = data.preferredLanguage;
-        }
-        if (data.sourceLanguage) {
-            document.getElementById('sourceLanguageSelector').value = data.sourceLanguage;
-        }
-        if (data.speechSpeed) {
-            document.getElementById('setSpeed').value = data.speechSpeed;
-        }
-        if (data.speechVoice) {
-            document.getElementById('voiceSelector').value = data.speechVoice;
-        }
-        if (data.chosenModel) {
-            document.getElementById('modelSelector').value = data.chosenModel;
-        }
-        if (data.speechModel) {
-            document.getElementById('speechModelSelector').value = data.speechModel;
-        }
+        document.getElementById('apiKey').value = data.openaiApiKey || '';
+        document.getElementById('languageSelector').value = data.preferredLanguage || defaults.preferredLanguage;
+        document.getElementById('sourceLanguageSelector').value = data.sourceLanguage || defaults.sourceLanguage;
+        document.getElementById('setSpeed').value = data.speechSpeed || defaults.speechSpeed;
+        document.getElementById('voiceSelector').value = data.speechVoice || defaults.speechVoice;
+        document.getElementById('modelSelector').value = data.chosenModel || defaults.chosenModel;
+        document.getElementById('speechModelSelector').value = data.speechModel || defaults.speechModel;
     });
+
 });
