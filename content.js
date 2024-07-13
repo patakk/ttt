@@ -391,8 +391,8 @@ let isQuizState = false;
 let quizComplete = false;
 
 document.addEventListener('keydown', function(event) {
-    console.log('isQuizState', isQuizState)
     if (event.key === 'q' && (!isQuizState || quizComplete)) {
+        // console.log('isQuizState', isQuizState)
         quizComplete = false;
         hanziwriter.quiz(
             {
